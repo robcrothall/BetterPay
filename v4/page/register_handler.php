@@ -38,6 +38,12 @@ $data = [
     'created_by' => 0,
 ];
 
-$id = create_user($data);
-set_flash('Registration successful. Please log in.', 'success');
-redirect('/v4/page/login.php');
+try {
+    $id = create_user($data);
+    set_flash('Registration successful. Please log in.', 'success');
+    redirect('/v4/page/login.php');
+} catch (PDOException $e) {
+    error_log('Registration failed: ' . $e->getMessage());
+    set_flash('Registration failed due to a system error. Please try again later.', 'error');
+    redirect('/v4/page/register.php');
+}

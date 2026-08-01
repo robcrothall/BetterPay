@@ -13,6 +13,9 @@ session_start();
 </head>
 <body class="w3-container">
   <h2>Register</h2>
+  <?php if (!empty($_SESSION['flash'])): ?>
+    <div class="w3-panel w3-pale-blue"><?php echo htmlspecialchars($_SESSION['flash']['message']); unset($_SESSION['flash']); ?></div>
+  <?php endif; ?>
   <form method="post" action="/v4/page/register_handler.php" class="w3-container w3-card-4 w3-padding">
     <label>First name</label>
     <input class="w3-input" type="text" name="first_name" required>

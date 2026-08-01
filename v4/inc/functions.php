@@ -174,7 +174,16 @@ function log_audit_event(string $table_name, int $row_id, string $action, string
 
 function redirect(string $path): void
 {
-    header('Location: ' . $path);
+    if (!headers_sent()) {
+        header('Location: ' . $path);
+        exit;
+    }
+
+    echo '<!doctype html><html><head>';
+    echo '<meta http-equiv="refresh" content="0;url=' . htmlspecialchars($path, ENT_QUOTES, 'UTF-8') . '">';
+    echo '<title>Redirecting</title></head><body>';
+    echo 'Redirecting to <a href="' . htmlspecialchars($path, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($path, ENT_QUOTES, 'UTF-8') . '</a>.';
+    echo '</body></html>';
     exit;
 }
 
@@ -232,7 +241,7 @@ function archive_change(string $table_name, int $row_id, string $field_name, ?st
  */
 function create_user(array $data): int
 {
-    $sql = 'INSERT INTO users (username, email, password_hash, first_name, surname, display_name, phone_mobile, phone_landline, is_active, created_by, updated_by) VALUES (:username, :email, :password_hash, :first_name, :surname, :display_name, :phone_mobile, :phone_landline, :is_active, :created_by, :updated_by)';
+    $sql = 'INSERT INTO users (username, email, password_hash, first_name, surname, display_name, phone_mobile, phone_landline, is_active, created_by, updated_by, role) VALUES (:username, :email, :password_hash, :first_name, :surname, :display_name, :phone_mobile, :phone_landline, :is_active, :created_by, :updated_by, :role)';
     $stmt = db()->prepare($sql);
     $stmt->execute([
         ':username' => $data['username'],
@@ -246,6 +255,7 @@ function create_user(array $data): int
         ':is_active' => $data['is_active'] ?? 1,
         ':created_by' => $data['created_by'] ?? 0,
         ':updated_by' => $data['updated_by'] ?? 0,
+        ':role' => $data['role'] ?? null,
     ]);
     $id = (int) db()->lastInsertId();
 

@@ -23,23 +23,19 @@ $data = [
     'surname' => 'User',
     'display_name' => 'Administrator',
     'phone_mobile' => '',
+    'role' => 'administrator',
     'created_by' => 0,
 ];
 
-$id = create_user($data);
-// Add role entry if roles table exists
-try {
-    $stmt = db()->prepare('INSERT IGNORE INTO roles (name) VALUES ("administrator")');
-    $stmt->execute();
-    $roleStmt = db()->prepare('SELECT id FROM roles WHERE name = "administrator" LIMIT 1');
-    $roleStmt->execute();
-    $role = $roleStmt->fetch();
-    if ($role) {
-        $stmt = db()->prepare('INSERT INTO user_roles (user_id, role_id) VALUES (:user_id, :role_id)');
-        $stmt->execute([':user_id' => $id, ':role_id' => $role['id']]);
-    }
-} catch (Exception $e) {
-    // ignore if roles not present
+$stmt = db()->prepare('SELECT id FROM users WHERE username = :username OR email = :email LIMIT 1');
+$stmt->execute([':username' => $email, ':email' => $email]);
+$existing = $stmt->fetch();
+if ($existing) {
+    $stmt = db()->prepare('UPDATE users SET password_hash = :password_hash, role = :role, updated_at = NOW() WHERE id = :id');
+    $stmt->execute([':password_hash' => hash_password($password), ':role' => 'administrator', ':id' => $existing['id']]);
+    echo "Updated existing admin user id: {$existing['id']}\n";
+    exit(0);
 }
 
+$id = create_user($data);
 echo "Created admin user id: $id\n";

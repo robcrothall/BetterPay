@@ -33,8 +33,8 @@ $data = [
     'password_hash' => hash_password($password),
     'first_name' => $first,
     'surname' => $surname,
-    'display_name' => $first . ' ' . $surname,
-    'phone_mobile' => $mobile,
+    'mobile' => $mobile,
+    'landline' => null,
     'created_by' => 0,
 ];
 
@@ -43,7 +43,14 @@ try {
     set_flash('Registration successful. Please log in.', 'success');
     redirect('/v4/page/login.php');
 } catch (PDOException $e) {
-    error_log('Registration failed: ' . $e->getMessage());
-    set_flash('Registration failed due to a system error. Please try again later.', 'error');
+    $message = $e->getMessage();
+    error_log('Registration failed: ' . $message);
+    if (stripos($message, 'duplicate') !== false || stripos($message, 'unique') !== false) {
+        set_flash('Registration failed: username or email already exists.', 'error');
+    } elseif (stripos($message, 'foreign key') !== false) {
+        set_flash('Registration failed: related data is missing or invalid.', 'error');
+    } else {
+        set_flash('Registration failed: a database error occurred. Please try again later.', 'error');
+    }
     redirect('/v4/page/register.php');
 }

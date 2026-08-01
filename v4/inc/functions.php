@@ -241,7 +241,7 @@ function archive_change(string $table_name, int $row_id, string $field_name, ?st
  */
 function create_user(array $data): int
 {
-    $sql = 'INSERT INTO users (username, email, password_hash, first_name, surname, display_name, phone_mobile, phone_landline, is_active, created_by, updated_by, role) VALUES (:username, :email, :password_hash, :first_name, :surname, :display_name, :phone_mobile, :phone_landline, :is_active, :created_by, :updated_by, :role)';
+    $sql = 'INSERT INTO users (username, email, password_hash, first_name, surname, mobile, landline, title_id, status, unsubscribe_email, role, created_by, updated_by) VALUES (:username, :email, :password_hash, :first_name, :surname, :mobile, :landline, :title_id, :status, :unsubscribe_email, :role, :created_by, :updated_by)';
     $stmt = db()->prepare($sql);
     $stmt->execute([
         ':username' => $data['username'],
@@ -249,19 +249,24 @@ function create_user(array $data): int
         ':password_hash' => $data['password_hash'],
         ':first_name' => $data['first_name'] ?? null,
         ':surname' => $data['surname'] ?? null,
-        ':display_name' => $data['display_name'] ?? ($data['first_name'] . ' ' . $data['surname']),
-        ':phone_mobile' => $data['phone_mobile'] ?? null,
-        ':phone_landline' => $data['phone_landline'] ?? null,
-        ':is_active' => $data['is_active'] ?? 1,
+        ':mobile' => $data['mobile'] ?? $data['phone_mobile'] ?? null,
+        ':landline' => $data['landline'] ?? $data['phone_landline'] ?? null,
+        ':title_id' => $data['title_id'] ?? null,
+        ':status' => $data['status'] ?? 'active',
+        ':unsubscribe_email' => $data['unsubscribe_email'] ?? 0,
+        ':role' => $data['role'] ?? null,
         ':created_by' => $data['created_by'] ?? 0,
         ':updated_by' => $data['updated_by'] ?? 0,
-        ':role' => $data['role'] ?? null,
     ]);
     $id = (int) db()->lastInsertId();
 
-    // Write an audit entry and archive the initial record for diagnostics
-    log_audit_event('users', $id, 'insert', '', null, json_encode($data), $data['created_by'] ?? 0);
-    archive_change('users', $id, '__full_record__', null, json_encode($data), $data['created_by'] ?? 0);
+    try {
+        // Write an audit entry and archive the initial record for diagnostics
+        log_audit_event('users', $id, 'insert', '', null, json_encode($data), $data['created_by'] ?? 0);
+        archive_change('users', $id, '__full_record__', null, json_encode($data), $data['created_by'] ?? 0);
+    } catch (PDOException $e) {
+        error_log('User audit/archive failure: ' . $e->getMessage());
+    }
 
     return $id;
 }

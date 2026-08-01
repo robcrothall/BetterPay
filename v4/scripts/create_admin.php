@@ -21,8 +21,8 @@ $data = [
     'password_hash' => hash_password($password),
     'first_name' => 'Admin',
     'surname' => 'User',
-    'display_name' => 'Administrator',
-    'phone_mobile' => '',
+    'mobile' => '',
+    'landline' => '',
     'role' => 'administrator',
     'created_by' => 0,
 ];
@@ -31,8 +31,8 @@ $stmt = db()->prepare('SELECT id FROM users WHERE username = :username OR email 
 $stmt->execute([':username' => $email, ':email' => $email]);
 $existing = $stmt->fetch();
 if ($existing) {
-    $stmt = db()->prepare('UPDATE users SET password_hash = :password_hash, role = :role, updated_at = NOW() WHERE id = :id');
-    $stmt->execute([':password_hash' => hash_password($password), ':role' => 'administrator', ':id' => $existing['id']]);
+    $stmt = db()->prepare('UPDATE users SET password_hash = :password_hash, updated_at = NOW() WHERE id = :id');
+    $stmt->execute([':password_hash' => hash_password($password), ':id' => $existing['id']]);
     echo "Updated existing admin user id: {$existing['id']}\n";
     exit(0);
 }

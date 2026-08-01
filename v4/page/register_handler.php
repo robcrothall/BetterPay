@@ -8,14 +8,23 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $first = trim($_POST['first_name'] ?? '');
+$givenName = trim($_POST['given_name'] ?? '');
 $surname = trim($_POST['surname'] ?? '');
 $username = trim($_POST['username'] ?? '');
+$idType = trim($_POST['id_type'] ?? '');
+$idNumber = trim($_POST['id_number'] ?? '');
 $email = trim($_POST['email'] ?? '');
-$mobile = trim($_POST['phone_mobile'] ?? '');
+$mobile = trim($_POST['mobile'] ?? '');
+$landline = trim($_POST['landline'] ?? '');
 $password = $_POST['password'] ?? '';
 
-if ($first === '' || $surname === '' || $username === '' || $password === '') {
+if ($first === '' || $surname === '' || $username === '' || $idType === '' || $idNumber === '' || $password === '') {
     set_flash('Please complete required fields', 'error');
+    redirect('/v4/page/register.php');
+}
+
+if ($password !== ($_POST['password_confirm'] ?? '')) {
+    set_flash('Passwords do not match', 'error');
     redirect('/v4/page/register.php');
 }
 
@@ -33,13 +42,16 @@ $data = [
     'password_hash' => hash_password($password),
     'first_name' => $first,
     'surname' => $surname,
+    'given_name' => $givenName,
     'mobile' => $mobile,
-    'landline' => null,
+    'landline' => $landline,
     'created_by' => 0,
 ];
 
 try {
     $id = create_user($data);
+    $idTypeId = get_or_create_id_type($idType);
+    create_or_update_user_identity($id, $idTypeId, $idNumber);
     set_flash('Registration successful. Please log in.', 'success');
     redirect('/v4/page/login.php');
 } catch (PDOException $e) {

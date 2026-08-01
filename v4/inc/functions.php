@@ -61,6 +61,18 @@ function create_or_update_title(string $name, ?string $description = null, ?int 
     return (int) db()->lastInsertId();
 }
 
+function get_or_create_id_type(string $name): int
+{
+    $stmt = db()->prepare('SELECT id FROM id_type WHERE name = :name LIMIT 1');
+    $stmt->execute([':name' => $name]);
+    $row = $stmt->fetch();
+    if ($row) {
+        return (int) $row['id'];
+    }
+
+    return create_or_update_id_type($name);
+}
+
 function create_or_update_user_identity(int $userId, int $idTypeId, string $idNumber): void
 {
     $stmt = db()->prepare('INSERT INTO user_identity (user_id, id_type_id, id_number) VALUES (:user_id, :id_type_id, :id_number) ON DUPLICATE KEY UPDATE id_number = VALUES(id_number)');
@@ -73,17 +85,59 @@ function create_or_update_user_identity(int $userId, int $idTypeId, string $idNu
 
 function current_user_record(): array
 {
-    if (!is_logged_in()) {
-        return [];
-    }
+    return get_user_by_id(current_user_id());
+}
+
+function get_user_by_id(int $userId): array
+{
     $stmt = db()->prepare('SELECT * FROM users WHERE id = :id LIMIT 1');
-    $stmt->execute([':id' => current_user_id()]);
+    $stmt->execute([':id' => $userId]);
     return $stmt->fetch() ?: [];
 }
 
 function current_user_id(): int
 {
     return (int) ($_SESSION['user']['id'] ?? 0);
+}
+
+function is_user_in_role(int $userId, string $roleName): bool
+{
+    $stmt = db()->prepare('SELECT 1 FROM user_roles ur JOIN roles r ON ur.role_id = r.id WHERE ur.user_id = :user_id AND r.name = :role_name LIMIT 1');
+    $stmt->execute([':user_id' => $userId, ':role_name' => $roleName]);
+    return (bool) $stmt->fetchColumn();
+}
+
+function is_administrator(): bool
+{
+    if (!is_logged_in()) {
+        return false;
+    }
+    return is_user_in_role(current_user_id(), 'administrator');
+}
+
+function update_user_profile(int $userId, array $data): void
+{
+    $fields = [
+        'first_name' => $data['first_name'] ?? null,
+        'surname' => $data['surname'] ?? null,
+        'given_name' => $data['given_name'] ?? null,
+        'username' => $data['username'] ?? null,
+        'email' => $data['email'] ?? null,
+        'mobile' => $data['mobile'] ?? null,
+        'landline' => $data['landline'] ?? null,
+        'updated_by' => $data['updated_by'] ?? current_user_id(),
+    ];
+
+    $sql = 'UPDATE users SET first_name = :first_name, surname = :surname, given_name = :given_name, username = :username, email = :email, mobile = :mobile, landline = :landline, updated_by = :updated_by, updated_at = NOW()';
+    if (!empty($data['password_hash'])) {
+        $sql .= ', password_hash = :password_hash';
+        $fields['password_hash'] = $data['password_hash'];
+    }
+    $sql .= ' WHERE id = :id';
+    $fields['id'] = $userId;
+
+    $stmt = db()->prepare($sql);
+    $stmt->execute($fields);
 }
 
 function db(): PDO
@@ -145,6 +199,20 @@ function get_user_identities(int $userId): array
 {
     $stmt = db()->prepare('SELECT ui.id, ui.id_type_id, ui.id_number, it.name AS id_type_name FROM user_identity ui LEFT JOIN id_type it ON it.id = ui.id_type_id WHERE ui.user_id = :user_id ORDER BY it.name');
     $stmt->execute([':user_id' => $userId]);
+    return $stmt->fetchAll() ?: [];
+}
+
+function get_user_identity(int $userId): array
+{
+    $stmt = db()->prepare('SELECT ui.id, ui.id_type_id, ui.id_number, it.name AS id_type_name FROM user_identity ui LEFT JOIN id_type it ON it.id = ui.id_type_id WHERE ui.user_id = :user_id LIMIT 1');
+    $stmt->execute([':user_id' => $userId]);
+    return $stmt->fetch() ?: [];
+}
+
+function get_all_users(): array
+{
+    $stmt = db()->prepare('SELECT u.id, u.username, u.email, u.first_name, u.surname, u.given_name, u.mobile, u.landline, u.created_at, u.updated_at, (SELECT CONCAT(it.name, ": ", ui.id_number) FROM user_identity ui JOIN id_type it ON ui.id_type_id = it.id WHERE ui.user_id = u.id LIMIT 1) AS identity FROM users u ORDER BY u.username');
+    $stmt->execute();
     return $stmt->fetchAll() ?: [];
 }
 
@@ -237,11 +305,11 @@ function archive_change(string $table_name, int $row_id, string $field_name, ?st
 
 /**
  * Create a new user and record audit/archive entries.
- * Expects: username, password_hash, first_name, surname, email, phone_mobile, phone_landline
+ * Expects: username, password_hash, first_name, surname, email, mobile, landline, given_name
  */
 function create_user(array $data): int
 {
-    $sql = 'INSERT INTO users (username, email, password_hash, first_name, surname, mobile, landline, title_id, status, unsubscribe_email, role, created_by, updated_by) VALUES (:username, :email, :password_hash, :first_name, :surname, :mobile, :landline, :title_id, :status, :unsubscribe_email, :role, :created_by, :updated_by)';
+    $sql = 'INSERT INTO users (username, email, password_hash, first_name, surname, given_name, mobile, landline, title_id, status, unsubscribe_email, role, created_by, updated_by) VALUES (:username, :email, :password_hash, :first_name, :surname, :given_name, :mobile, :landline, :title_id, :status, :unsubscribe_email, :role, :created_by, :updated_by)';
     $stmt = db()->prepare($sql);
     $stmt->execute([
         ':username' => $data['username'],
@@ -249,6 +317,7 @@ function create_user(array $data): int
         ':password_hash' => $data['password_hash'],
         ':first_name' => $data['first_name'] ?? null,
         ':surname' => $data['surname'] ?? null,
+        ':given_name' => $data['given_name'] ?? null,
         ':mobile' => $data['mobile'] ?? $data['phone_mobile'] ?? null,
         ':landline' => $data['landline'] ?? $data['phone_landline'] ?? null,
         ':title_id' => $data['title_id'] ?? null,

@@ -1,0 +1,16 @@
+# Local configuration and secrets
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+*.tmp
+/tmp/
+
+# Uploaded or generated files
+v4/vendor/
+v4/uploads/
+v4/uploads/*
+
+# Preserve nested v1 repo metadata only
+v1/.git

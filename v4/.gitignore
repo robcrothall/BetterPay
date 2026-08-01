@@ -1,0 +1,12 @@
+.DS_Store
+Thumbs.db
+node_modules/
+vendor/
+.env
+*.log
+uploads/
+uploads/*
+!uploads/.gitkeep
+/.idea/
+/.vscode/
+inc/constants.php

@@ -1,0 +1,26 @@
+name: Deploy v4
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'v4/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync v4 to remote server (rsync over SSH)
+        uses: burnett01/rsync-deployments@v4
+        with:
+          switches: -avz --delete
+          path: v4/
+          remote_path: ${{ secrets.DEPLOY_PATH }}
+          remote_host: ${{ secrets.DEPLOY_HOST }}
+          remote_user: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+
+# To use: set repository secrets: DEPLOY_HOST, DEPLOY_USER, DEPLOY_PATH, DEPLOY_KEY (private key)

@@ -1,0 +1,21 @@
+<?php
+/**
+ * constants.php.example
+ *
+ * Copy this file to `inc/constants.php` and update values for your local environment.
+ */
+
+define('WEBSITE', 'http://localhost/v4');
+define('DATABASE', 'betterpay_v4');
+define('PASSWORD', 'change_me');
+define('SERVER', 'localhost');
+define('USERNAME', 'db_user');
+define('CLIENT_NAME', 'BetterPay Services');
+define('SYSTEM_NAME', 'Work seeker and employer platform');
+define('COPYRIGHT', 'BetterPay Services');
+define('INFO_EMAIL', 'info@betterpay.co.za');
+define('PHYSICAL_ADDR', '');
+define('POSTAL_ADDR', '');
+define('CIPHERING', 'AES-128-CTR');
+define('ENCRYPTION_IV', 'ReplaceWith16ByteIV');
+define('ENCRYPTION_KEY', 'ReplaceWithKey');

@@ -1,0 +1,15 @@
+# Local configuration and secrets
+inc/constants.php
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Temporary and generated files
+*.log
+*.tmp
+/tmp/
+
+# Uploads and local content
+uploads/
